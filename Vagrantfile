@@ -11,6 +11,7 @@ adminpassword = '1qaZXsw2'
 $script = <<-SCRIPT
 sudo yum -y update
 sudo yum install -y tcpdump vim wget epel-release yum-utils device-mapper-persistent-data lvm2 net-tools bind-utils telnet
+sudo sed -i '/127.0.0.1.*$nodenames.*/d' /etc/hosts
 sudo cp /vagrant/lxc3.0.repo /etc/yum.repos.d/
 sudo chown root:root /etc/yum.repos.d/lxc3.0.repo
 #sudo systemctl stop firewalld
