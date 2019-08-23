@@ -1,17 +1,18 @@
 # -*- mode: ruby -*-
 # vi: set ft=ruby :
 
-numberOfNodes = 2
-domainname = 'rhce-training.ru'
-ipspace = '192.168.13'
-nodenames = 'node'
-dspassword = '12345678'
-adminpassword = '1qaZXsw2'
+NUMBEROFNODES = 2
+DOMAINNAME = 'rhce-training.ru'
+IPSPACE = '192.168.13'
+NODENAMES = 'node'
+DSPASSWORD = '1qaZXsw2'
+ADMINPASSWORD = '1qaZXsw2'
+REALMNAME=DOMAINNAME.upcase
 
 $script = <<-SCRIPT
 sudo yum -y update
-sudo yum install -y tcpdump vim wget epel-release yum-utils device-mapper-persistent-data lvm2 net-tools bind-utils telnet
-sudo sed -i '/127.0.0.1.*$nodenames.*/d' /etc/hosts
+sudo yum install -y tcpdump vim wget epel-release yum-utils device-mapper-persistent-data lvm2 net-tools bind-utils telnet lsof
+sudo sed -i "/127.0.0.1.*#{NODENAMES}.*/d" /etc/hosts
 sudo cp /vagrant/lxc3.0.repo /etc/yum.repos.d/
 sudo chown root:root /etc/yum.repos.d/lxc3.0.repo
 #sudo systemctl stop firewalld
@@ -24,19 +25,20 @@ SCRIPT
 
 $script_ipa = <<-SCRIPT
 sudo yum -y update
-sudo yum install -y tcpdump vim wget epel-release yum-utils ipa-server net-tools bind-utils telnet ipa-server-dns
+sudo yum install -y tcpdump vim wget epel-release yum-utils ipa-server net-tools bind-utils telnet ipa-server-dns lsof
 sudo sed -i '/127.0.0.1.*ipaserver/d' /etc/hosts
+sudo systemctl start firewalld
 sudo firewall-cmd --add-service=freeipa-ldap --permanent
 sudo firewall-cmd --add-service=freeipa-ldaps --permanent
 sudo firewall-cmd --add-service=dns --permanent
 sudo firewall-cmd --reload
-ipa-server-install --ds-password='1qaZXsw2' \
+ipa-server-install --ds-password="#{DSPASSWORD}" \
 --setup-dns \
---admin-password=$adminpassword \
---ip-address=$ipspace + '.11' \
---domain=$domainname \
---realm=$domainname.upcase \
---hostname="ipaserver.#{domainname}" \
+--admin-password="#{ADMINPASSWORD}" \
+--ip-address="#{IPSPACE}.11" \
+--domain="#{DOMAINNAME}" \
+--realm="#{REALMNAME}" \
+--hostname="ipaserver.#{DOMAINNAME}" \
 --mkhomedir \
 --auto-reverse \
 --auto-forwarders \
@@ -56,11 +58,11 @@ Vagrant.configure("2") do |config|
 	config.hostmanager.manage_host = true
 	config.hostmanager.ignore_private_ip = false
 	config.hostmanager.include_offline = true
-	(1..numberOfNodes).each do |i|
-		config.vm.define "#{nodenames}-#{i}" do |nodeconfig|
+	(1..NUMBEROFNODES).each do |i|
+		config.vm.define "#{NODENAMES}-#{i}" do |nodeconfig|
 			nodeconfig.vm.box = "centos/7"
-			nodeconfig.vm.hostname = "#{nodenames}-#{i}.#{domainname}"
-			nodeconfig.vm.network :private_network, ip: "#{ipspace}.2#{i}"
+			nodeconfig.vm.hostname = "#{NODENAMES}-#{i}.#{DOMAINNAME}"
+			nodeconfig.vm.network :private_network, ip: "#{IPSPACE}.2#{i}"
 			nodeconfig.vm.provider :virtualbox do |vb|
 				vb.customize [
 					"modifyvm", :id,
@@ -68,22 +70,20 @@ Vagrant.configure("2") do |config|
 					"--nic3", "intnet",
 					"--nic4", "intnet"
 				]
-			#nodeconfig.hostmanager.aliases = ["#{nodenames}.#{domainname} #{nodenames}"]
 			nodeconfig.vm.provision "shell", inline: $script
 			end
 		end
 	end
 	config.vm.define "ipaserver" do |ipaserver|
 		ipaserver.vm.box = "centos/7"
-		ipaserver.vm.hostname = "ipaserver.#{domainname}"
-		ipaserver.vm.network :private_network, ip: "#{ipspace}.11"
+		ipaserver.vm.hostname = "ipaserver.#{DOMAINNAME}"
+		ipaserver.vm.network :private_network, ip: "#{IPSPACE}.11"
 		ipaserver.vm.provider :virtualbox do |vb|
 			vb.customize [
 							"modifyvm", :id,
 							"--memory", 1024,
 						]
 		end
-		#ipaserver.hostmanager.aliases = ["ipaserver.#{domainname} ipaserver"]
 		ipaserver.vm.provision "shell", inline: $script_ipa
 		
 	end
