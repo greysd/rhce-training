@@ -6,7 +6,7 @@ domainname = 'rhce-training.ru'
 ipspace = '192.168.13'
 nodenames = 'node'
 dspassword = '12345678'
-
+adminpassword = '1qaZXsw2'
 
 $script = <<-SCRIPT
 sudo yum -y update
@@ -17,12 +17,32 @@ sudo chown root:root /etc/yum.repos.d/lxc3.0.repo
 #sudo yum install -y debootstrap lxc lxc-templates lxc-extra libcap-devel lbcgroup
 sudo yum remove -y docker docker-client docker-client-latest docker-common docker-latest docker-latest-logrotate docker-logrotate docker-engine
 sudo yum-config-manager --add-repo https://download.docker.com/linux/centos/docker-ce.repo
+sudo systemctl start firewalld
 #sudo yum install -y docker-ce docker-ce-cli containerd.io
 SCRIPT
 
 $script_ipa = <<-SCRIPT
 sudo yum -y update
 sudo yum install -y tcpdump vim wget epel-release yum-utils ipa-server net-tools bind-utils telnet ipa-server-dns
+sudo sed -i '/127.0.0.1.*ipaserver/d' /etc/hosts
+sudo firewall-cmd --add-service=freeipa-ldap --permanent
+sudo firewall-cmd --add-service=freeipa-ldaps --permanent
+sudo firewall-cmd --add-service=dns --permanent
+sudo firewall-cmd --reload
+ipa-server-install --ds-password='1qaZXsw2' \
+--setup-dns \
+--admin-password=$adminpassword \
+--ip-address=$ipspace + '.11' \
+--domain=$domainname \
+--realm=$domainname.upcase \
+--hostname="ipaserver.#{domainname}" \
+--mkhomedir \
+--auto-reverse \
+--auto-forwarders \
+--no-dnssec-validation \
+--no-ntp \
+--quiet \
+--unattended
 SCRIPT
 
 unless Vagrant.has_plugin?("vagrant-hostmanager")
@@ -33,7 +53,7 @@ Vagrant.configure("2") do |config|
 	config.hostmanager.enabled = true
 	config.hostmanager.manage_guest = true
 	config.hostmanager.manage_host = true
-	config.hostmanager.ignore_private_ip = true
+	config.hostmanager.ignore_private_ip = false
 	config.hostmanager.include_offline = true
 	(1..numberOfNodes).each do |i|
 		config.vm.define "#{nodenames}-#{i}" do |nodeconfig|
@@ -47,7 +67,7 @@ Vagrant.configure("2") do |config|
 					"--nic3", "intnet",
 					"--nic4", "intnet"
 				]
-			nodeconfig.hostmanager.aliases = ["#{nodenames}.#{domainname}","#{nodenames}"]
+			#nodeconfig.hostmanager.aliases = ["#{nodenames}.#{domainname} #{nodenames}"]
 			nodeconfig.vm.provision "shell", inline: $script
 			end
 		end
@@ -62,7 +82,7 @@ Vagrant.configure("2") do |config|
 							"--memory", 1024,
 						]
 		end
-		ipaserver.hostmanager.aliases = ["ipaserver.#{domainname}","ipaserver"]
+		#ipaserver.hostmanager.aliases = ["ipaserver.#{domainname} ipaserver"]
 		ipaserver.vm.provision "shell", inline: $script_ipa
 		
 	end
