@@ -32,33 +32,33 @@ sudo yum-config-manager --add-repo https://download.docker.com/linux/centos/dock
 SCRIPT
 
 $script_ipa = <<-SCRIPT
-sudo yum install -y ipa-server ipa-server-dns
-sudo sed -i '/127.0.0.1.*ipaserver/d' /etc/hosts
-sudo firewall-cmd --add-service=freeipa-ldap --permanent
-sudo firewall-cmd --add-service=freeipa-ldaps --permanent
-sudo firewall-cmd --add-service=dns --permanent
-sudo firewall-cmd --reload
-ipa-server-install --ds-password="#{DSPASSWORD}" \
---setup-dns \
---admin-password="#{ADMINPASSWORD}" \
---ip-address="#{IPSPACE}.11" \
---domain="#{DOMAINNAME}" \
---realm="#{REALMNAME}" \
---hostname="ipaserver.#{DOMAINNAME}" \
---mkhomedir \
---auto-reverse \
---auto-forwarders \
---no-dnssec-validation \
---no-ntp \
---quiet \
---unattended
+sudo yum install -y krb5-server krb5-workstation pam_krb5
+sudo sed -i "/127.0.0.1.*krbserver/d" /etc/hosts
+sudo sed -i "s/EXAMPLE.COM/#{REALMNAME}/; s/#//; s/}/default_principal_flags = +preauth\n}/" /var/kerberos/krb5kdc/kdc.conf
+sudo sed -i "1d; s/#//; s/# default/ default/; s/\(\.\?\)example.com/\1#{DOMAINNAME}/; s/EXAMPLE.COM/#{REALMNAME}/; s/kerberos./krbserver./" /etc/krb5.conf 
+sudo sed -i "s/EXAMPLE.COM/#{REALMNAME}/"  /var/kerberos/krb5kdc/kadm5.acl
+sudo kdb5_util create -s -r #{REALMNAME} -P #{DSPASSWORD}
+sudo systemctl start krb5kdc kadmin
+sudo systemctl enable krb5kdc kadmin
+sudo useradd user01
 
-echo '1qaZXsw2' | kinit admin
-echo "1qaZXsw2" | ipa user-add --first="Test" --last="User" --cn="Test User" --password
+sudo sh -c "echo ank -pw 1qaZXsw2 root/admin |kadmin.local"
+sudo sh -c "echo ank -pw 1qaZXsw2 user01 |kadmin.local"
+sudo sh -c "echo ank -randkey host/krbserver.rhce-training.ru | kadmin.local"
+sudo sh -c "kadmin.local ktadd host/krbserver.rhce-training.ru"
+sudo sed -i "s/#GSSAPIAuthentication yes/GSSAPIAuthentication yes/"
+sudo systemctl reload sshd
+sudo authconfig --enablekrb5 --update
+
+sudo firewall-cmd --add-service=kadmin --permanent
+sudo firewall-cmd --add-service=kerberos --permanent
+sudo firewall-cmd --reload
+
+
 SCRIPT
 
 $script_trigger = <<-SCRIPT
-vagrant ssh master -- cp "/vagrant/.vagrant/machines/ipaserver/virtualbox/private_key" ~/.ssh/id_rsa
+vagrant ssh master -- cp "/vagrant/.vagrant/machines/krbserver/virtualbox/private_key" ~/.ssh/id_rsa
 SCRIPT
 
 unless Vagrant.has_plugin?("vagrant-hostmanager")
@@ -88,18 +88,18 @@ Vagrant.configure("2") do |config|
 			nodeconfig.vm.provision "shell", inline: $script
 		end
 	end
-	config.vm.define "ipaserver" do |ipaserver|
-		ipaserver.vm.box = "centos/7"
-		ipaserver.vm.hostname = "ipaserver.#{DOMAINNAME}"
-		ipaserver.vm.network :private_network, ip: "#{IPSPACE}.11"
-		ipaserver.vm.provision "shell", inline: $script_common
-		ipaserver.vm.provider :virtualbox do |vb|
+	config.vm.define "krbserver" do |krbserver|
+		krbserver.vm.box = "centos/7"
+		krbserver.vm.hostname = "krbserver.#{DOMAINNAME}"
+		krbserver.vm.network :private_network, ip: "#{IPSPACE}.11"
+		krbserver.vm.provision "shell", inline: $script_common
+		krbserver.vm.provider :virtualbox do |vb|
 			vb.customize [
 							"modifyvm", :id,
 							"--memory", 1024,
 						]
 		end
-		ipaserver.vm.provision "shell", inline: $script_ipa
+		krbserver.vm.provision "shell", inline: $script_ipa
 		
 	end
 end
