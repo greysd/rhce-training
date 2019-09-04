@@ -14,20 +14,17 @@ $script_common = <<-SCRIPT
 sudo yum -y update
 sudo yum install -y tcpdump vim wget epel-release yum-utils net-tools bind-utils telnet lsof
 sudo systemctl start firewalld
-sudo cp /vagrant/id_rsa* /home/vagrant/.ssh/
-chown vagrant:vagrant /home/vagrant/.ssh/id_rsa*
-chmod 600 /home/vagrant/.ssh/id_rsa
-cat /home/vagrant/.ssh/id_rsa.pub >> /home/vagrant/.ssh/authorized_keys
+/bin/bash /vagrant/sshkeys.sh
 SCRIPT
 
 $script = <<-SCRIPT
 sudo sed -i "/127.0.0.1.*#{NODENAMES}.*/d" /etc/hosts
-sudo cp /vagrant/lxc3.0.repo /etc/yum.repos.d/
-sudo chown root:root /etc/yum.repos.d/lxc3.0.repo
+#sudo cp /vagrant/lxc3.0.repo /etc/yum.repos.d/
+#sudo chown root:root /etc/yum.repos.d/lxc3.0.repo
 #sudo systemctl stop firewalld
 #sudo yum install -y debootstrap lxc lxc-templates lxc-extra libcap-devel lbcgroup
-sudo yum remove -y docker docker-client docker-client-latest docker-common docker-latest docker-latest-logrotate docker-logrotate docker-engine krb5-workstation pam_krb5
-sudo yum-config-manager --add-repo https://download.docker.com/linux/centos/docker-ce.repo
+#sudo yum remove -y docker docker-client docker-client-latest docker-common docker-latest docker-latest-logrotate docker-logrotate docker-engine krb5-workstation pam_krb5
+#sudo yum-config-manager --add-repo https://download.docker.com/linux/centos/docker-ce.repo
 #sudo yum install -y docker-ce docker-ce-cli containerd.io
 SCRIPT
 
@@ -42,7 +39,6 @@ sudo kdb5_util create -s -r #{REALMNAME} -P #{DSPASSWORD}
 sudo systemctl start krb5kdc kadmin
 sudo systemctl enable krb5kdc kadmin
 sudo useradd user01
-
 sudo sh -c "echo ank -pw 1qaZXsw2 root/admin |kadmin.local"
 sudo sh -c "echo ank -pw 1qaZXsw2 user01 |kadmin.local"
 sudo sh -c "echo ank -randkey host/krbserver.rhce-training.ru | kadmin.local"
@@ -50,12 +46,9 @@ sudo sh -c "kadmin.local ktadd host/krbserver.rhce-training.ru"
 sudo sed -i "s/#GSSAPIAuthentication yes/GSSAPIAuthentication yes/"
 sudo systemctl reload sshd
 sudo authconfig --enablekrb5 --update
-
 sudo firewall-cmd --add-service=kadmin --permanent
 sudo firewall-cmd --add-service=kerberos --permanent
 sudo firewall-cmd --reload
-
-
 SCRIPT
 
 $script_trigger = <<-SCRIPT
