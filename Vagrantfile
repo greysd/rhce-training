@@ -14,7 +14,7 @@ $script_common = <<-SCRIPT
 sudo yum -y update
 sudo yum install -y tcpdump vim wget epel-release yum-utils net-tools bind-utils telnet lsof
 sudo systemctl start firewalld
-/bin/bash /vagrant/sshkeys.sh
+/bin/bash /vagrant/sshkey.sh
 SCRIPT
 
 $script = <<-SCRIPT
