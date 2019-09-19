@@ -48,7 +48,9 @@ sudo systemctl reload sshd
 sudo authconfig --enablekrb5 --update
 sudo firewall-cmd --add-service=kadmin --permanent
 sudo firewall-cmd --add-service=kerberos --permanent
+sudo firewall-cmd --add-service=smtp --permanent
 sudo firewall-cmd --reload
+sudo /vagrant/mailserver.sh
 SCRIPT
 
 $script_trigger = <<-SCRIPT
