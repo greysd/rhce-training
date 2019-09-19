@@ -29,10 +29,10 @@ sudo sed -i "/127.0.0.1.*#{NODENAMES}.*/d" /etc/hosts
 SCRIPT
 
 $script_ipa = <<-SCRIPT
-sudo yum install -y krb5-server krb5-workstation pam_krb5
+sudo yum install -y krb5-server krb5-workstation pam_krb5 setroubleshoot-server
 sudo sed -i "/127.0.0.1.*krbserver/d" /etc/hosts
 sudo sed -i "s/EXAMPLE.COM/#{REALMNAME}/; s/#//; s/}/default_principal_flags = +preauth\n}/" /var/kerberos/krb5kdc/kdc.conf
-sudo sed -i "1d; s/#//; s/# default/ default/; s/\(\.\?\)example.com/\1#{DOMAINNAME}/; s/EXAMPLE.COM/#{REALMNAME}/; s/kerberos./krbserver./" /etc/krb5.conf 
+sudo sed -i "1d; s/#//; s/# default/ default/; s/example.com/#{DOMAINNAME}/; s/EXAMPLE.COM/#{REALMNAME}/; s/kerberos./krbserver./" /etc/krb5.conf 
 sudo sed -i "s/EXAMPLE.COM/#{REALMNAME}/"  /var/kerberos/krb5kdc/kadm5.acl
 sudo sed -i "s/#PermitRootLogin yes/PermitRootLogin yes/" /etc/ssh/sshd_config
 sudo kdb5_util create -s -r #{REALMNAME} -P #{DSPASSWORD}

@@ -10,4 +10,3 @@ newaliases
 systemctl restart postfix
 semanage fcontext -a -t user_home_dir_t "/var/archive(/.*)?"
 restorecon -R /var/archive
-semanage boolean -a http
