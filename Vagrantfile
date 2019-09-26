@@ -11,7 +11,8 @@ REALMNAME=DOMAINNAME.upcase
 USERPASS = '1qaZXsw2'
 
 $script_common = <<-SCRIPT
-sudo yum -y update
+#do not update server
+#sudo yum -y update
 sudo yum install -y tcpdump vim wget epel-release yum-utils net-tools bind-utils telnet lsof
 sudo systemctl start firewalld
 /bin/bash /vagrant/sshkey.sh
@@ -69,7 +70,8 @@ Vagrant.configure("2") do |config|
 	config.hostmanager.include_offline = true
 	(1..NUMBEROFNODES).each do |i|
 		config.vm.define "#{NODENAMES}-#{i}" do |nodeconfig|
-			nodeconfig.vm.box = "centos/7"
+			nodeconfig.vm.box = "generic/centos7"
+			nodeconfig.vm.box_version = "0.8.21"
 			nodeconfig.vm.hostname = "#{NODENAMES}-#{i}.#{DOMAINNAME}"
 			nodeconfig.vm.network :private_network, ip: "#{IPSPACE}.2#{i}"
 			nodeconfig.vm.provision "shell", inline: $script_common
@@ -85,7 +87,8 @@ Vagrant.configure("2") do |config|
 		end
 	end
 	config.vm.define "krbserver" do |krbserver|
-		krbserver.vm.box = "centos/7"
+		krbserver.vm.box = "generic/centos7"
+		krbserver.vm.box_version = "0.8.21"
 		krbserver.vm.hostname = "krbserver.#{DOMAINNAME}"
 		krbserver.vm.network :private_network, ip: "#{IPSPACE}.11"
 		krbserver.vm.provision "shell", inline: $script_common
