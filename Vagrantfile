@@ -70,8 +70,8 @@ Vagrant.configure("2") do |config|
 	config.hostmanager.include_offline = true
 	(1..NUMBEROFNODES).each do |i|
 		config.vm.define "#{NODENAMES}-#{i}" do |nodeconfig|
-			nodeconfig.vm.box = "generic/centos7"
-			nodeconfig.vm.box_version = "0.8.21"
+			nodeconfig.vm.box = "hnakamur/centos7.0-x64"
+			nodeconfig.vm.box_version = "0.1.0"
 			nodeconfig.vm.hostname = "#{NODENAMES}-#{i}.#{DOMAINNAME}"
 			nodeconfig.vm.network :private_network, ip: "#{IPSPACE}.2#{i}"
 			nodeconfig.vm.provision "shell", inline: $script_common
@@ -87,8 +87,8 @@ Vagrant.configure("2") do |config|
 		end
 	end
 	config.vm.define "krbserver" do |krbserver|
-		krbserver.vm.box = "generic/centos7"
-		krbserver.vm.box_version = "0.8.21"
+		krbserver.vm.box = "hnakamur/centos7.0-x64"
+		krbserver.vm.box_version = "0.1.0"
 		krbserver.vm.hostname = "krbserver.#{DOMAINNAME}"
 		krbserver.vm.network :private_network, ip: "#{IPSPACE}.11"
 		krbserver.vm.provision "shell", inline: $script_common
