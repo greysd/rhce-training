@@ -1,5 +1,5 @@
 # rhce-training
-Состав:
+## Состав:
 2 ноды для работы (node-1, node-2)
 1 керберос сервер (krbserver), который так же можно использовать для проверки задач с заблокированным доступом 
 
@@ -24,4 +24,25 @@ echo ank -pw 1qaZXsw2 nfs/node-1.example.com | kadmin -w "1qaZXsw2"
 Сгенерировать keytab на нодах выполнить команду после установки krb5-workstation
 ```
 kadmin -w "1qaZXsw2" ktadd host/krbserver.rhce-training.ru 
+```
+
+В задачах с почтой можно использовать krbserver как relay сообщений.
+Все сообщения сохраняются в папке  /var/archive/mail/new отдельными файлами.
+
+## Установка:
+1. Установить vagrant
+2. Установить plugin 
+```
+vagrant plugin install vagrant-hostmanager
+```
+Для запуска виртуальной машины необходимо открыть командную строчку от имени администратора
+Так как plugin vagrant-hostmanager добавляет вирутальные машины в файл hosts 
+```
+git clone https://github.com/greysd/rhce-training.git
+cd rhce-training 
+vagrant up
+```
+Зайти на машину по ssh
+```
+vagrant ssh krbserver
 ```
