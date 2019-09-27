@@ -8,5 +8,5 @@ postconf -e always_bcc=mailarchive@localhost
 echo "mailarchive: /var/archive/mail/" >> /etc/aliases
 newaliases
 systemctl restart postfix
-semanage fcontext -a -t user_home_dir_t "/var/archive(/.*)?"
-restorecon -R /var/archive
+#semanage fcontext -a -t user_home_dir_t "/var/archive(/.*)?"
+#restorecon -R /var/archive

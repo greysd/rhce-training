@@ -13,7 +13,7 @@ USERPASS = '1qaZXsw2'
 $script_common = <<-SCRIPT
 #do not update server
 #sudo yum -y update
-sudo yum install -y tcpdump vim wget epel-release yum-utils net-tools bind-utils telnet lsof
+sudo yum install -y tcpdump vim wget yum-utils net-tools bind-utils telnet lsof
 sudo systemctl start firewalld
 /bin/bash /vagrant/sshkey.sh
 SCRIPT
@@ -30,27 +30,64 @@ sudo sed -i "/127.0.0.1.*#{NODENAMES}.*/d" /etc/hosts
 SCRIPT
 
 $script_ipa = <<-SCRIPT
+#echo "change selinux mode in confi file"
+#sudo sed -i "s/SELINUX=disabled/SELINUX=enforcing/" /etc/selinux/config
 sudo yum install -y krb5-server krb5-workstation pam_krb5 setroubleshoot-server
+echo "=== hosts"
 sudo sed -i "/127.0.0.1.*krbserver/d" /etc/hosts
-sudo sed -i "s/EXAMPLE.COM/#{REALMNAME}/; s/#//; s/}/default_principal_flags = +preauth\n}/" /var/kerberos/krb5kdc/kdc.conf
-sudo sed -i "1d; s/#//; s/# default/ default/; s/example.com/#{DOMAINNAME}/; s/EXAMPLE.COM/#{REALMNAME}/; s/kerberos./krbserver./" /etc/krb5.conf 
+echo "=== kdc.conf change REALMNAME"
+sudo sed -i "s/EXAMPLE.COM/#{REALMNAME}/" /var/kerberos/krb5kdc/kdc.conf
+echo "=== kdc.conf delete all comment signs"
+sudo sed -i "s/#//" /var/kerberos/krb5kdc/kdc.conf
+echo "=== kdc.conf remove last }"
+sudo sed -i "s/}//" /var/kerberos/krb5kdc/kdc.conf
+echo "=== add default principal flag"
+sudo echo '  default_principal_flags = +preauth' >> /var/kerberos/krb5kdc/kdc.conf
+echo "=== add last }"
+sudo echo "}" >> /var/kerberos/krb5kdc/kdc.conf
+echo "=== krb5.conf first line"
+sudo sed -i "1d" /etc/krb5.conf 
+echo "=== krb5.conf remove comment sign"
+sudo sed -i 's/#//' /etc/krb5.conf
+echo "=== krb5.conf remove comment"
+sudo sed -i 's/# default/ default/' /etc/krb5.conf
+echo "=== krb5.conf change domain name"
+sudo sed -i "s/example.com/#{DOMAINNAME}/" /etc/krb5.conf
+echo "=== krb5.conf change realmname"
+sudo sed -i "s/EXAMPLE.COM/#{REALMNAME}/" /etc/krb5.conf
+echo "=== krb5.conf change server name"
+sudo sed -i "s/kerberos./krbserver./" /etc/krb5.conf 
+echo "=== kadm5.acl"
 sudo sed -i "s/EXAMPLE.COM/#{REALMNAME}/"  /var/kerberos/krb5kdc/kadm5.acl
+echo "=== sshd_config"
 sudo sed -i "s/#PermitRootLogin yes/PermitRootLogin yes/" /etc/ssh/sshd_config
+echo "=== create kdb5_util "
 sudo kdb5_util create -s -r #{REALMNAME} -P #{DSPASSWORD}
+echo "start services"
 sudo systemctl start krb5kdc kadmin
 sudo systemctl enable krb5kdc kadmin
+echo "=== add user user01"
+echo "=== add user user01"
 sudo useradd user01
+echo "create admin principal"
 sudo sh -c "echo ank -pw 1qaZXsw2 root/admin |kadmin.local"
+echo "create user01 principal"
 sudo sh -c "echo ank -pw 1qaZXsw2 user01 |kadmin.local"
+echo "create host/krbserver principal"
 sudo sh -c "echo ank -randkey host/krbserver.rhce-training.ru | kadmin.local"
+echo "=== save ktfile"
 sudo sh -c "kadmin.local ktadd host/krbserver.rhce-training.ru"
-sudo sed -i "s/#GSSAPIAuthentication yes/GSSAPIAuthentication yes/"
+echo "=== change sshd config" 
+sudo sed -i "s/#GSSAPIAuthentication yes/GSSAPIAuthentication yes/" /etc/ssh/sshd_config
+echo "=== reload sshd"
 sudo systemctl reload sshd
+echo "== authconfig"
 sudo authconfig --enablekrb5 --update
-sudo firewall-cmd --add-service=kadmin --permanent
+sudo firewall-cmd --add-port=749/tcp --permanent
 sudo firewall-cmd --add-service=kerberos --permanent
 sudo firewall-cmd --add-service=smtp --permanent
 sudo firewall-cmd --reload
+echo "run mailserver install"
 sudo /vagrant/mailserver.sh
 SCRIPT
 
@@ -70,8 +107,7 @@ Vagrant.configure("2") do |config|
 	config.hostmanager.include_offline = true
 	(1..NUMBEROFNODES).each do |i|
 		config.vm.define "#{NODENAMES}-#{i}" do |nodeconfig|
-			nodeconfig.vm.box = "hnakamur/centos7.0-x64"
-			nodeconfig.vm.box_version = "0.1.0"
+			nodeconfig.vm.box = "rafacas/centos70-plain"
 			nodeconfig.vm.hostname = "#{NODENAMES}-#{i}.#{DOMAINNAME}"
 			nodeconfig.vm.network :private_network, ip: "#{IPSPACE}.2#{i}"
 			nodeconfig.vm.provision "shell", inline: $script_common
@@ -87,8 +123,7 @@ Vagrant.configure("2") do |config|
 		end
 	end
 	config.vm.define "krbserver" do |krbserver|
-		krbserver.vm.box = "hnakamur/centos7.0-x64"
-		krbserver.vm.box_version = "0.1.0"
+		krbserver.vm.box = "rafacas/centos70-plain"
 		krbserver.vm.hostname = "krbserver.#{DOMAINNAME}"
 		krbserver.vm.network :private_network, ip: "#{IPSPACE}.11"
 		krbserver.vm.provision "shell", inline: $script_common
