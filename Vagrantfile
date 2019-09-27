@@ -2,7 +2,7 @@
 # vi: set ft=ruby :
 
 NUMBEROFNODES = 2
-DOMAINNAME = 'rhce-training.ru'
+DOMAINNAME = 'example.com'
 IPSPACE = '192.168.13'
 NODENAMES = 'node'
 DSPASSWORD = '1qaZXsw2'
