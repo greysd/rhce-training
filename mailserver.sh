@@ -7,6 +7,7 @@ chown -R nobody:nobody /var/archive
 postconf -e always_bcc=mailarchive@localhost
 echo "mailarchive: /var/archive/mail/" >> /etc/aliases
 newaliases
+sed -i '/inet_interfaces/ s/localhost/all/'
 systemctl restart postfix
 #semanage fcontext -a -t user_home_dir_t "/var/archive(/.*)?"
 #restorecon -R /var/archive
